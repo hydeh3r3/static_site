@@ -1,5 +1,5 @@
 import unittest
-from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link, text_to_textnodes
+from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link, text_to_textnodes, markdown_to_blocks
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -184,6 +184,39 @@ class TestTextToTextNodes(unittest.TestCase):
             TextNode("image", text_type_image, "https://example.com/image.jpg"),
         ]
         self.assertEqual(text_to_textnodes(text), expected)
+
+class TestMarkdownToBlocks(unittest.TestCase):
+    def test_basic_split(self):
+        markdown = "# This is a heading\n\nThis is a paragraph of text. It has some **bold** and *italic* words inside of it.\n\n* This is the first list item in a list block\n* This is a list item\n* This is another list item"
+        expected = [
+            "# This is a heading",
+            "This is a paragraph of text. It has some **bold** and *italic* words inside of it.",
+            "* This is the first list item in a list block\n* This is a list item\n* This is another list item"
+        ]
+        self.assertEqual(markdown_to_blocks(markdown), expected)
+
+    def test_remove_empty_blocks(self):
+        markdown = "# Heading\n\n\n\nParagraph\n\n\n* List item\n\n\n"
+        expected = [
+            "# Heading",
+            "Paragraph",
+            "* List item"
+        ]
+        self.assertEqual(markdown_to_blocks(markdown), expected)
+
+    def test_mixed_content(self):
+        markdown = "# Heading 1\n\nParagraph 1\n\n## Heading 2\n\nParagraph 2\n\n* List item 1\n* List item 2\n\n1. Ordered item 1\n2. Ordered item 2"
+        expected = [
+            "# Heading 1",
+            "Paragraph 1",
+            "## Heading 2",
+            "Paragraph 2",
+            "* List item 1\n* List item 2",
+            "1. Ordered item 1\n2. Ordered item 2"
+        ]
+        actual = markdown_to_blocks(markdown)
+        print("Actual:", actual)
+        self.assertEqual(actual, expected)
 
 if __name__ == "__main__":
     unittest.main()

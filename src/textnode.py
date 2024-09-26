@@ -107,3 +107,50 @@ def text_to_textnodes(text):
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return [node for node in nodes if node.text]  # Remove empty nodes
+
+def markdown_to_blocks(markdown):
+    # Split the markdown into blocks based on headings, paragraphs, and list items
+    blocks = re.split(r'(\n\s*\n|\n(?=\#))', markdown)
+    
+    # Strip leading and trailing whitespace from each block and remove empty blocks
+    blocks = [block.strip() for block in blocks if block.strip()]
+    
+    # Combine consecutive list items into single blocks
+    combined_blocks = []
+    current_block = []
+    for block in blocks:
+        if block.startswith(('* ', '- ', '+ ')) or re.match(r'^\d+\.', block):
+            current_block.append(block)
+        else:
+            if current_block:
+                combined_blocks.append('\n'.join(current_block))
+                current_block = []
+            combined_blocks.append(block)
+    if current_block:
+        combined_blocks.append('\n'.join(current_block))
+    
+    # Separate ordered list items from unordered list items
+    final_blocks = []
+    for block in combined_blocks:
+        if '\n' in block and (block.startswith(('* ', '- ', '+ ')) or re.match(r'^\d+\.', block)):
+            unordered = []
+            ordered = []
+            for line in block.split('\n'):
+                if line.startswith(('* ', '- ', '+ ')):
+                    if ordered:
+                        final_blocks.append('\n'.join(ordered))
+                        ordered = []
+                    unordered.append(line)
+                elif re.match(r'^\d+\.', line):
+                    if unordered:
+                        final_blocks.append('\n'.join(unordered))
+                        unordered = []
+                    ordered.append(line)
+            if unordered:
+                final_blocks.append('\n'.join(unordered))
+            if ordered:
+                final_blocks.append('\n'.join(ordered))
+        else:
+            final_blocks.append(block)
+    
+    return final_blocks
