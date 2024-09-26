@@ -1,5 +1,5 @@
 import unittest
-from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link, text_to_textnodes, markdown_to_blocks
+from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link, text_to_textnodes, markdown_to_blocks, block_to_block_type
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -217,6 +217,27 @@ class TestMarkdownToBlocks(unittest.TestCase):
         actual = markdown_to_blocks(markdown)
         print("Actual:", actual)
         self.assertEqual(actual, expected)
+
+class TestBlockToBlockType(unittest.TestCase):
+    def test_heading(self):
+        self.assertEqual(block_to_block_type("# This is a heading"), "heading")
+        self.assertEqual(block_to_block_type("### Third level heading"), "heading")
+
+    def test_code_block(self):
+        self.assertEqual(block_to_block_type("```\nprint('Hello, World!')\n```"), "code")
+
+    def test_quote_block(self):
+        self.assertEqual(block_to_block_type("> This is a quote\n> It spans multiple lines"), "quote")
+
+    def test_unordered_list(self):
+        self.assertEqual(block_to_block_type("* Item 1\n* Item 2\n* Item 3"), "unordered_list")
+        self.assertEqual(block_to_block_type("- First item\n- Second item"), "unordered_list")
+
+    def test_ordered_list(self):
+        self.assertEqual(block_to_block_type("1. First item\n2. Second item\n3. Third item"), "ordered_list")
+
+    def test_paragraph(self):
+        self.assertEqual(block_to_block_type("This is a normal paragraph of text."), "paragraph")
 
 if __name__ == "__main__":
     unittest.main()
