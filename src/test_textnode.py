@@ -1,5 +1,5 @@
 import unittest
-from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter
+from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -76,6 +76,75 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertEqual(result[1].text, "code **with bold**")
         self.assertEqual(result[1].text_type, text_type_code)
+
+class TestSplitNodesImage(unittest.TestCase):
+    def test_split_image(self):
+        node = TextNode("This is an ![image](https://example.com/image.jpg) in text", text_type_text)
+        result = split_nodes_image([node])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].text, "This is an ")
+        self.assertEqual(result[1].text, "image")
+        self.assertEqual(result[1].text_type, text_type_image)
+        self.assertEqual(result[1].url, "https://example.com/image.jpg")
+        self.assertEqual(result[2].text, " in text")
+
+    def test_multiple_images(self):
+        node = TextNode("![First](first.jpg) and ![Second](second.jpg)", text_type_text)
+        result = split_nodes_image([node])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].text_type, text_type_image)
+        self.assertEqual(result[1].text, " and ")
+        self.assertEqual(result[2].text_type, text_type_image)
+
+    def test_no_images(self):
+        node = TextNode("Just plain text", text_type_text)
+        result = split_nodes_image([node])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], node)
+
+    def test_empty_node(self):
+        node = TextNode("", text_type_text)
+        result = split_nodes_image([node])
+        self.assertEqual(len(result), 0)
+
+class TestSplitNodesLink(unittest.TestCase):
+    def test_split_link(self):
+        node = TextNode("This is a [link](https://example.com) in text", text_type_text)
+        result = split_nodes_link([node])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].text, "This is a ")
+        self.assertEqual(result[1].text, "link")
+        self.assertEqual(result[1].text_type, text_type_link)
+        self.assertEqual(result[1].url, "https://example.com")
+        self.assertEqual(result[2].text, " in text")
+
+    def test_multiple_links(self):
+        node = TextNode("[First](first.com) and [Second](second.com)", text_type_text)
+        result = split_nodes_link([node])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].text_type, text_type_link)
+        self.assertEqual(result[1].text, " and ")
+        self.assertEqual(result[2].text_type, text_type_link)
+
+    def test_no_links(self):
+        node = TextNode("Just plain text", text_type_text)
+        result = split_nodes_link([node])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], node)
+
+    def test_empty_node(self):
+        node = TextNode("", text_type_text)
+        result = split_nodes_link([node])
+        self.assertEqual(len(result), 0)
+
+    def test_complex_scenario(self):
+        node = TextNode("Text with [link](https://example.com) and ![image](image.jpg) mixed", text_type_text)
+        result = split_nodes_link([node])
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[1].text_type, text_type_link)
+        result = split_nodes_image(result)
+        self.assertEqual(len(result), 5)
+        self.assertEqual(result[3].text_type, text_type_image)
 
 if __name__ == "__main__":
     unittest.main()

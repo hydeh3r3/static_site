@@ -59,3 +59,53 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         new_nodes.append(TextNode("", text_type_text))
     
     return new_nodes
+
+import re
+
+def split_nodes_image(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        if node.text_type != text_type_text:
+            new_nodes.append(node)
+            continue
+        
+        pattern = r"!\[(.*?)\]\((.*?)\)"
+        matches = re.finditer(pattern, node.text)
+        last_end = 0
+        
+        for match in matches:
+            start, end = match.span()
+            if start > last_end:
+                new_nodes.append(TextNode(node.text[last_end:start], text_type_text))
+            
+            alt_text = match.group(1)
+            image_url = match.group(2)
+            new_nodes.append(TextNode(alt_text, text_type_image, image_url))
+            
+            last_end = end
+        
+        if last_end < len(node.text):
+            new_nodes.append(TextNode(node.text[last_end:], text_type_text))
+    
+    return [node for node in new_nodes if node.text]
+
+def split_nodes_link(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        if node.text_type != text_type_text:
+            new_nodes.append(node)
+            continue
+        
+        pattern = r'(?<!!)\[([^\]]+)\]\(([^)]+)\)'  # This pattern excludes image syntax
+        parts = re.split(pattern, node.text)
+        
+        for i, part in enumerate(parts):
+            if i % 3 == 0:  # Text part
+                if part:
+                    new_nodes.append(TextNode(part, text_type_text))
+            elif i % 3 == 1:  # Link text
+                link_text = part
+            else:  # Link URL
+                new_nodes.append(TextNode(link_text, text_type_link, part))
+    
+    return [node for node in new_nodes if node.text]
