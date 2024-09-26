@@ -1,3 +1,5 @@
+from htmlnode import HTMLNode
+
 # Define TextNode types
 text_type_text = "text"
 text_type_bold = "bold"
@@ -180,3 +182,104 @@ def block_to_block_type(block):
     
     # If none of the above, it's a paragraph
     return "paragraph"
+
+def block_to_html_node(block, block_type):
+    if block_type == "paragraph":
+        return paragraph_to_html_node(block)
+    elif block_type == "heading":
+        return heading_to_html_node(block)
+    elif block_type == "code":
+        return code_to_html_node(block)
+    elif block_type == "quote":
+        return quote_to_html_node(block)
+    elif block_type == "unordered_list":
+        return unordered_list_to_html_node(block)
+    elif block_type == "ordered_list":
+        return ordered_list_to_html_node(block)
+    else:
+        raise ValueError(f"Invalid block type: {block_type}")
+
+def paragraph_to_html_node(block):
+    text_nodes = text_to_textnodes(block)
+    return HTMLNode("p", None, text_nodes_to_html_nodes(text_nodes))
+
+def text_nodes_to_html_nodes(text_nodes):
+    html_nodes = []
+    for text_node in text_nodes:
+        if text_node.text_type == text_type_text:
+            html_nodes.append(text_node.text)
+        elif text_node.text_type == text_type_bold:
+            html_nodes.append(HTMLNode("b", None, [text_node.text]))
+        elif text_node.text_type == text_type_italic:
+            html_nodes.append(HTMLNode("i", None, [text_node.text]))
+        elif text_node.text_type == text_type_code:
+            html_nodes.append(HTMLNode("code", None, [text_node.text]))
+        elif text_node.text_type == text_type_link:
+            html_nodes.append(HTMLNode("a", None, [text_node.text], {"href": text_node.url}))
+        elif text_node.text_type == text_type_image:
+            html_nodes.append(HTMLNode("img", None, None, {"src": text_node.url, "alt": text_node.text}))
+    return html_nodes
+
+def heading_to_html_node(block):
+    level = block.count("#")
+    content = block.lstrip("#").strip()
+    children = text_to_children(content)
+    return HTMLNode(f"h{level}", None, children)
+
+def code_to_html_node(block):
+    code_content = block.strip("`").strip()
+    return HTMLNode("pre", None, [HTMLNode("code", None, [code_content])])
+
+def quote_to_html_node(block):
+    return HTMLNode("blockquote", None, text_to_children(block[2:]))
+
+def unordered_list_to_html_node(block):
+    items = block.split("\n")
+    list_items = [HTMLNode("li", None, text_nodes_to_html_nodes(text_to_textnodes(item.strip("* ")))) for item in items if item.strip()]
+    return HTMLNode("ul", None, list_items)
+
+def ordered_list_to_html_node(block):
+    items = block.split("\n")
+    list_items = [HTMLNode("li", None, text_nodes_to_html_nodes(text_to_textnodes(item.split(". ", 1)[1]))) for item in items if item.strip()]
+    return HTMLNode("ol", None, list_items)
+
+def text_to_children(text):
+    nodes = text_to_textnodes(text)
+    return [textnode_to_html_node(node) for node in nodes]
+
+def textnode_to_html_node(node):
+    if node.text_type == text_type_text:
+        return node.text
+    elif node.text_type == text_type_bold:
+        return HTMLNode("b", None, [node.text])
+    elif node.text_type == text_type_italic:
+        return HTMLNode("i", None, [node.text])
+    elif node.text_type == text_type_code:
+        return HTMLNode("code", None, [node.text])
+    elif node.text_type == text_type_link:
+        return HTMLNode("a", None, [node.text], {"href": node.url})
+    elif node.text_type == text_type_image:
+        return HTMLNode("img", None, None, {"src": node.url, "alt": node.text})
+    else:
+        raise ValueError(f"Invalid text type: {node.text_type}")
+
+def markdown_to_html_node(markdown):
+    blocks = markdown_to_blocks(markdown)
+    children = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        if block_type == "paragraph":
+            children.append(paragraph_to_html_node(block))
+        elif block_type == "heading":
+            children.append(heading_to_html_node(block))
+        elif block_type == "code":
+            children.append(code_to_html_node(block))
+        elif block_type == "quote":
+            children.append(quote_to_html_node(block))
+        elif block_type == "unordered_list":
+            children.append(unordered_list_to_html_node(block))
+        elif block_type == "ordered_list":
+            children.append(ordered_list_to_html_node(block))
+        else:
+            raise ValueError(f"Invalid block type: {block_type}")
+    return HTMLNode("div", None, children)

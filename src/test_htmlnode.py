@@ -6,7 +6,7 @@ class TestHTMLNode(unittest.TestCase):
     def test_repr(self):
         """Test the __repr__ method for correct output"""
         node = HTMLNode(tag='div', value='Hello', children=[], props={})
-        expected_repr = "htmlnode(tag='div', value='Hello', children='[]', props='{}')"
+        expected_repr = "HTMLNode(tag='div', value='Hello', children=[], props={})"
         self.assertEqual(repr(node), expected_repr)
 
     def test_render(self):

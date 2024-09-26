@@ -1,13 +1,23 @@
 class HTMLNode:
-    def __init__(self, tag, value, children, props):
+    def __init__(self, tag, value, children, props=None):
         self.tag = tag
         self.value = value
         self.children = children
-        self.props = props
+        self.props = props if props is not None else {}
+
+    def __eq__(self, other):
+        if not isinstance(other, HTMLNode):
+            return False
+        return (
+            self.tag == other.tag and
+            self.value == other.value and
+            self.children == other.children and
+            self.props == other.props
+        )
 
     def __repr__(self):
-        return f"htmlnode(tag='{self.tag}', value='{self.value}', children='{self.children}', props='{self.props}')"
-    
+        return f"HTMLNode(tag='{self.tag}', value='{self.value}', children={self.children}, props={self.props})"
+
     def render(self):
         return f"<{self.tag}>{self.value}</{self.children}>"
 
@@ -22,6 +32,11 @@ class LeafNode(HTMLNode):
         if props is None:
             props = {}
         super().__init__(tag, value, [], props)
+
+    def __eq__(self, other):
+        if not isinstance(other, LeafNode):
+            return False
+        return super().__eq__(other)
 
     def to_html(self):
         # If tag is None, return the value as raw text
@@ -47,11 +62,17 @@ class LeafNode(HTMLNode):
 
 class ParentNode(HTMLNode):
     def __init__(self, tag, children, props=None):
-        if props is None:
-            props = {}
         if not children:
             raise ValueError("Must have children nodes.")
-        super().__init__(tag, None, children, props)
+        super().__init__(tag, None, children, props or {})
+
+    def __eq__(self, other):
+        if not isinstance(other, ParentNode):
+            return False
+        return super().__eq__(other)
+
+    def __repr__(self):
+        return f"ParentNode(tag='{self.tag}', children={self.children}, props={self.props})"
 
     def to_html(self):
         if not self.tag:
