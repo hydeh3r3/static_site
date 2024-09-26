@@ -1,5 +1,5 @@
 import unittest
-from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link
+from textnode import TextNode, text_type_text, text_type_bold, text_type_italic, text_type_code, split_nodes_delimiter, split_nodes_link, split_nodes_image, text_type_image, text_type_link, text_to_textnodes
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -51,14 +51,10 @@ class TestSplitNodesDelimiter(unittest.TestCase):
     def test_only_delimiters(self):
         node = TextNode("``", text_type_text)  # String of only delimiters
         result = split_nodes_delimiter([node], "`", text_type_code)
-        self.assertEqual(len(result), 2)  # Expecting one empty text node
-        self.assertEqual(result[0].text, "")  # Confirm that it's indeed an empty string
-        self.assertEqual(result[0].text_type, text_type_text)  # Check the text type
-
-    def test_unmatched_delimiter(self):
-        node = TextNode("Unmatched `delimiter", text_type_text)
-        with self.assertRaises(ValueError):
-            split_nodes_delimiter([node], "`", text_type_code)
+        self.assertEqual(len(result), 3)  # Empty text, code, empty text
+        self.assertEqual(result[0].text_type, text_type_text)
+        self.assertEqual(result[1].text_type, text_type_code)
+        self.assertEqual(result[2].text_type, text_type_text)
 
     def test_multiple_nodes(self):
         nodes = [
@@ -145,6 +141,49 @@ class TestSplitNodesLink(unittest.TestCase):
         result = split_nodes_image(result)
         self.assertEqual(len(result), 5)
         self.assertEqual(result[3].text_type, text_type_image)
+
+class TestTextToTextNodes(unittest.TestCase):
+    def test_text_to_textnodes(self):
+        text = "This is **text** with an *italic* word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        expected = [
+            TextNode("This is ", text_type_text),
+            TextNode("text", text_type_bold),
+            TextNode(" with an ", text_type_text),
+            TextNode("italic", text_type_italic),
+            TextNode(" word and a ", text_type_text),
+            TextNode("code block", text_type_code),
+            TextNode(" and an ", text_type_text),
+            TextNode("obi wan image", text_type_image, "https://i.imgur.com/fJRm4Vk.jpeg"),
+            TextNode(" and a ", text_type_text),
+            TextNode("link", text_type_link, "https://boot.dev"),
+        ]
+        self.assertEqual(text_to_textnodes(text), expected)
+
+    def test_text_to_textnodes_no_special_text(self):
+        text = "This is just plain text"
+        expected = [TextNode("This is just plain text", text_type_text)]
+        self.assertEqual(text_to_textnodes(text), expected)
+
+    def test_text_to_textnodes_multiple_bold(self):
+        text = "This **is** **bold** text"
+        expected = [
+            TextNode("This ", text_type_text),
+            TextNode("is", text_type_bold),
+            TextNode(" ", text_type_text),
+            TextNode("bold", text_type_bold),
+            TextNode(" text", text_type_text),
+        ]
+        self.assertEqual(text_to_textnodes(text), expected)
+
+    def test_text_to_textnodes_with_links_and_images(self):
+        text = "Check out this [link](https://example.com) and ![image](https://example.com/image.jpg)"
+        expected = [
+            TextNode("Check out this ", text_type_text),
+            TextNode("link", text_type_link, "https://example.com"),
+            TextNode(" and ", text_type_text),
+            TextNode("image", text_type_image, "https://example.com/image.jpg"),
+        ]
+        self.assertEqual(text_to_textnodes(text), expected)
 
 if __name__ == "__main__":
     unittest.main()

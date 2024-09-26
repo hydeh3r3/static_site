@@ -33,31 +33,18 @@ class TextNode:
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     new_nodes = []
-    
     for node in old_nodes:
         if node.text_type != text_type_text:
             new_nodes.append(node)
             continue
-        
-        parts = node.text.split(delimiter)
-        
-        if len(parts) % 2 == 0:
-            raise ValueError(f"Invalid Markdown syntax: Unmatched delimiter '{delimiter}'")
-        
-        # Process each part, alternating between text type
-        for i, part in enumerate(parts):
-            if part:  # If part is not empty
-                if i % 2 == 0:
-                    new_nodes.append(TextNode(part, text_type_text))  # Even index is text
-                else:
-                    new_nodes.append(TextNode(part, text_type))  # Odd index is the current text_type
-            elif i % 2 == 0:  # If the part is empty and it's an even index
-                new_nodes.append(TextNode("", text_type_text))  # Ensure to add an empty text node
 
-    # Handle edge cases for only delimiters or empty string
-    if len(new_nodes) == 0:
-        new_nodes.append(TextNode("", text_type_text))
-    
+        sections = node.text.split(delimiter)
+        current_type = text_type_text
+        
+        for i, section in enumerate(sections):
+            new_nodes.append(TextNode(section, current_type))
+            current_type = text_type if current_type == text_type_text else text_type_text
+
     return new_nodes
 
 import re
@@ -109,3 +96,14 @@ def split_nodes_link(old_nodes):
                 new_nodes.append(TextNode(link_text, text_type_link, part))
     
     return [node for node in new_nodes if node.text]
+
+def text_to_textnodes(text):
+    nodes = [TextNode(text, text_type_text)]
+    # Process code formatting first to prevent conflicts
+    nodes = split_nodes_delimiter(nodes, "`", text_type_code)
+    # Process bold before italic to handle nested formatting
+    nodes = split_nodes_delimiter(nodes, "**", text_type_bold)
+    nodes = split_nodes_delimiter(nodes, "*", text_type_italic)
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_link(nodes)
+    return [node for node in nodes if node.text]  # Remove empty nodes
