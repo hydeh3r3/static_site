@@ -1,4 +1,4 @@
-from htmlnode import HTMLNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 # Define TextNode types
 text_type_text = "text"
@@ -264,22 +264,28 @@ def textnode_to_html_node(node):
         raise ValueError(f"Invalid text type: {node.text_type}")
 
 def markdown_to_html_node(markdown):
-    blocks = markdown_to_blocks(markdown)
+    lines = markdown.split('\n')
     children = []
-    for block in blocks:
-        block_type = block_to_block_type(block)
-        if block_type == "paragraph":
-            children.append(paragraph_to_html_node(block))
-        elif block_type == "heading":
-            children.append(heading_to_html_node(block))
-        elif block_type == "code":
-            children.append(code_to_html_node(block))
-        elif block_type == "quote":
-            children.append(quote_to_html_node(block))
-        elif block_type == "unordered_list":
-            children.append(unordered_list_to_html_node(block))
-        elif block_type == "ordered_list":
-            children.append(ordered_list_to_html_node(block))
+    current_list = None
+
+    for line in lines:
+        if line.startswith('# '):
+            children.append(LeafNode('h1', line[2:].strip()))
+        elif line.startswith('## '):
+            children.append(LeafNode('h2', line[3:].strip()))
+        elif line.startswith('* '):
+            if current_list is None or current_list.tag != 'ul':
+                current_list = ParentNode('ul', [])
+                children.append(current_list)
+            current_list.children.append(LeafNode('li', line[2:].strip()))
+        elif line.strip() == '':
+            current_list = None
         else:
-            raise ValueError(f"Invalid block type: {block_type}")
-    return HTMLNode("div", None, children)
+            if not children or not isinstance(children[-1], LeafNode) or children[-1].tag != 'p':
+                children.append(LeafNode('p', line.strip()))
+            else:
+                children[-1].value += ' ' + line.strip()
+
+    if len(children) == 1:
+        return children[0]
+    return ParentNode('div', children) if children else None
