@@ -266,24 +266,38 @@ def textnode_to_html_node(node):
 def markdown_to_html_node(markdown):
     lines = markdown.split('\n')
     children = []
-    current_list = None
+    current_list = None  # To keep track of the current list being processed
 
     for line in lines:
         if line.startswith('# '):
+            # H1 header
             children.append(LeafNode('h1', line[2:].strip()))
+            current_list = None  # Reset any current list
         elif line.startswith('## '):
+            # H2 header
             children.append(LeafNode('h2', line[3:].strip()))
+            current_list = None  # Reset any current list
         elif line.startswith('* '):
+            # Unordered list item
+            list_item = LeafNode('li', line[2:].strip())
             if current_list is None or current_list.tag != 'ul':
-                current_list = ParentNode('ul', [])
+                # Initialize ParentNode with the first list item
+                current_list = ParentNode('ul', [list_item])
                 children.append(current_list)
-            current_list.children.append(LeafNode('li', line[2:].strip()))
+            else:
+                # Append additional list items to the existing list
+                current_list.children.append(list_item)
         elif line.strip() == '':
+            # Empty line resets current list context
             current_list = None
         else:
+            # Regular paragraph
             if not children or not isinstance(children[-1], LeafNode) or children[-1].tag != 'p':
-                children.append(LeafNode('p', line.strip()))
+                # Start a new paragraph
+                paragraph = LeafNode('p', line.strip())
+                children.append(paragraph)
             else:
+                # Append to the existing paragraph
                 children[-1].value += ' ' + line.strip()
 
     if len(children) == 1:

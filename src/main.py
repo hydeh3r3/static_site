@@ -53,6 +53,9 @@ def generate_page(from_path, template_path, dest_path):
     else:
         raise TypeError(f"Expected LeafNode or ParentNode, got {type(html_node)}")
 
+    # Extract hyperlinks using regular expression
+    hyperlinks = re.findall(r'href=[\'"]?([^\'" >]+)', html_content)
+
     title = extract_title(markdown_content)
 
     full_html = template_content.replace("{{ Title }}", title).replace("{{ Content }}", html_content)
@@ -61,6 +64,14 @@ def generate_page(from_path, template_path, dest_path):
 
     with open(dest_path, 'w') as f:
         f.write(full_html)
+    print(f"Written HTML content to {dest_path}")
+
+    # Print extracted hyperlinks
+    print("Extracted hyperlinks:")
+    for link in hyperlinks:
+        print(link)
+
+    return hyperlinks
 
 def main():
     public_dir = "public"
