@@ -1,6 +1,7 @@
 import os
 import shutil
 import re
+from pathlib import Path
 from textnode import markdown_to_html_node
 from htmlnode import LeafNode, ParentNode
 
@@ -73,8 +74,22 @@ def generate_page(from_path, template_path, dest_path):
 
     return hyperlinks
 
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    for entry in os.listdir(dir_path_content):
+        entry_path = os.path.join(dir_path_content, entry)
+        if os.path.isfile(entry_path) and entry.endswith('.md'):
+            relative_path = os.path.relpath(entry_path, dir_path_content)
+            dest_path = os.path.join(dest_dir_path, Path(relative_path).with_suffix('.html'))
+            generate_page(entry_path, template_path, dest_path)
+        elif os.path.isdir(entry_path):
+            subdir_dest_path = os.path.join(dest_dir_path, entry)
+            os.makedirs(subdir_dest_path, exist_ok=True)
+            generate_pages_recursive(entry_path, template_path, subdir_dest_path)
+
 def main():
     public_dir = "public"
+    content_dir = "content"
+    template_path = "template.html"
     
     # Delete anything in the public directory
     if os.path.exists(public_dir):
@@ -85,8 +100,8 @@ def main():
     # Copy all static files from static to public
     copy_directory("static", public_dir)
     
-    # Generate the index page
-    generate_page("content/index.md", "template.html", os.path.join(public_dir, "index.html"))
+    # Generate pages recursively
+    generate_pages_recursive(content_dir, template_path, public_dir)
     
     print("Static site generation complete.")
 

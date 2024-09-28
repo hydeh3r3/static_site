@@ -1,4 +1,5 @@
 from htmlnode import HTMLNode, LeafNode, ParentNode
+import re
 
 # Define TextNode types
 text_type_text = "text"
@@ -48,8 +49,6 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
             current_type = text_type if current_type == text_type_text else text_type_text
 
     return new_nodes
-
-import re
 
 def split_nodes_image(old_nodes):
     new_nodes = []
@@ -201,23 +200,26 @@ def block_to_html_node(block, block_type):
 
 def paragraph_to_html_node(block):
     text_nodes = text_to_textnodes(block)
-    return HTMLNode("p", None, text_nodes_to_html_nodes(text_nodes))
+    child_nodes = text_nodes_to_html_nodes(text_nodes)
+    return ParentNode("p", child_nodes)
 
 def text_nodes_to_html_nodes(text_nodes):
     html_nodes = []
     for text_node in text_nodes:
-        if text_node.text_type == text_type_text:
-            html_nodes.append(text_node.text)
+        if isinstance(text_node, str):
+            html_nodes.append(LeafNode(None, text_node))
+        elif text_node.text_type == text_type_text:
+            html_nodes.append(LeafNode(None, text_node.text))
         elif text_node.text_type == text_type_bold:
-            html_nodes.append(HTMLNode("b", None, [text_node.text]))
+            html_nodes.append(LeafNode("b", text_node.text))
         elif text_node.text_type == text_type_italic:
-            html_nodes.append(HTMLNode("i", None, [text_node.text]))
+            html_nodes.append(LeafNode("i", text_node.text))
         elif text_node.text_type == text_type_code:
-            html_nodes.append(HTMLNode("code", None, [text_node.text]))
+            html_nodes.append(LeafNode("code", text_node.text))
         elif text_node.text_type == text_type_link:
-            html_nodes.append(HTMLNode("a", None, [text_node.text], {"href": text_node.url}))
+            html_nodes.append(LeafNode("a", text_node.text, {"href": text_node.url}))
         elif text_node.text_type == text_type_image:
-            html_nodes.append(HTMLNode("img", None, None, {"src": text_node.url, "alt": text_node.text}))
+            html_nodes.append(LeafNode("img", "", {"src": text_node.url, "alt": text_node.text}))
         else:
             raise ValueError(f"Invalid text type: {text_node.text_type}")
     return html_nodes
@@ -226,86 +228,61 @@ def heading_to_html_node(block):
     level = block.count("#")
     content = block.lstrip("#").strip()
     children = text_to_children(content)
-    return HTMLNode(f"h{level}", None, children)
+    return ParentNode(f"h{level}", children)
 
 def code_to_html_node(block):
     code_content = block.strip("`").strip()
-    return HTMLNode("pre", None, [HTMLNode("code", None, [code_content])])
+    return ParentNode("pre", [ParentNode("code", [LeafNode(None, code_content)])])
+
+def code_to_html_node(block):
+    code_content = block.strip("`").strip()
+    return ParentNode("pre", [ParentNode("code", [LeafNode(None, code_content)])])
 
 def quote_to_html_node(block):
-    return HTMLNode("blockquote", None, text_to_children(block[2:]))
+    return ParentNode("blockquote", text_to_children(block[2:]))
 
 def unordered_list_to_html_node(block):
     items = block.split("\n")
-    list_items = [HTMLNode("li", None, text_nodes_to_html_nodes(text_to_textnodes(item.strip("* ")))) for item in items if item.strip()]
-    return HTMLNode("ul", None, list_items)
+    list_items = [ParentNode("li", text_nodes_to_html_nodes(text_to_textnodes(item.strip("* ")))) for item in items if item.strip()]
+    return ParentNode("ul", list_items)
 
 def ordered_list_to_html_node(block):
     items = block.split("\n")
-    list_items = [HTMLNode("li", None, text_nodes_to_html_nodes(text_to_textnodes(item.split(". ", 1)[1]))) for item in items if item.strip()]
-    return HTMLNode("ol", None, list_items)
+    list_items = [ParentNode("li", text_nodes_to_html_nodes(text_to_textnodes(item.split(". ", 1)[1]))) for item in items if item.strip()]
+    return ParentNode("ol", list_items)
 
 def text_to_children(text):
     nodes = text_to_textnodes(text)
-    return text_nodes_to_html_nodes(nodes)
+    return [textnode_to_html_node(node) for node in nodes]
 
-def text_nodes_to_html_nodes(nodes):
-    html_nodes = []
-    for node in nodes:
-        if isinstance(node, TextNode):
-            if node.text_type == text_type_text:
-                html_nodes.append(node.text)
-            elif node.text_type == text_type_bold:
-                html_nodes.append(HTMLNode("b", None, [node.text]))
-            elif node.text_type == text_type_italic:
-                html_nodes.append(HTMLNode("i", None, [node.text]))
-            elif node.text_type == text_type_code:
-                html_nodes.append(HTMLNode("code", None, [node.text]))
-            elif node.text_type == text_type_link:
-                html_nodes.append(HTMLNode("a", None, [node.text], {"href": node.url}))
-            elif node.text_type == text_type_image:
-                html_nodes.append(HTMLNode("img", None, None, {"src": node.url, "alt": node.text}))
-        else:
-            html_nodes.append(node)
-    return html_nodes
+def textnode_to_html_node(node):
+    if isinstance(node, str):
+        return LeafNode(None, node)
+    elif node.text_type == text_type_text:
+        return LeafNode(None, node.text)
+    elif node.text_type == text_type_bold:
+        return LeafNode("b", node.text)
+    elif node.text_type == text_type_italic:
+        return LeafNode("i", node.text)
+    elif node.text_type == text_type_code:
+        return LeafNode("code", node.text)
+    elif node.text_type == text_type_link:
+        return LeafNode("a", node.text, {"href": node.url})
+    elif node.text_type == text_type_image:
+        return LeafNode("img", "", {"src": node.url, "alt": node.text})
+    else:
+        raise ValueError(f"Invalid text type: {node.text_type}")
 
 def markdown_to_html_node(markdown):
-    lines = markdown.split('\n')
+    blocks = markdown_to_blocks(markdown)
     children = []
-    current_list = None  # To keep track of the current list being processed
-
-    for line in lines:
-        if line.startswith('# '):
-            # H1 header
-            children.append(LeafNode('h1', line[2:].strip()))
-            current_list = None  # Reset any current list
-        elif line.startswith('## '):
-            # H2 header
-            children.append(LeafNode('h2', line[3:].strip()))
-            current_list = None  # Reset any current list
-        elif line.startswith('* '):
-            # Unordered list item
-            list_item = LeafNode('li', line[2:].strip())
-            if current_list is None or current_list.tag != 'ul':
-                # Initialize ParentNode with the first list item
-                current_list = ParentNode('ul', [list_item])
-                children.append(current_list)
-            else:
-                # Append additional list items to the existing list
-                current_list.children.append(list_item)
-        elif line.strip() == '':
-            # Empty line resets current list context
-            current_list = None
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        html_node = block_to_html_node(block, block_type)
+        if isinstance(html_node, (LeafNode, ParentNode)):
+            children.append(html_node)
+        elif isinstance(html_node, str):
+            children.append(LeafNode(None, html_node))
         else:
-            # Regular paragraph
-            if not children or not isinstance(children[-1], LeafNode) or children[-1].tag != 'p':
-                # Start a new paragraph
-                paragraph = LeafNode('p', line.strip())
-                children.append(paragraph)
-            else:
-                # Append to the existing paragraph
-                children[-1].value += ' ' + line.strip()
-
-    if len(children) == 1:
-        return children[0]
-    return ParentNode('div', children) if children else None
+            raise ValueError(f"Unexpected node type: {type(html_node)}")
+    return ParentNode("div", children)
