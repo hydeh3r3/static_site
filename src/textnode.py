@@ -218,6 +218,8 @@ def text_nodes_to_html_nodes(text_nodes):
             html_nodes.append(HTMLNode("a", None, [text_node.text], {"href": text_node.url}))
         elif text_node.text_type == text_type_image:
             html_nodes.append(HTMLNode("img", None, None, {"src": text_node.url, "alt": text_node.text}))
+        else:
+            raise ValueError(f"Invalid text type: {text_node.text_type}")
     return html_nodes
 
 def heading_to_html_node(block):
@@ -245,23 +247,27 @@ def ordered_list_to_html_node(block):
 
 def text_to_children(text):
     nodes = text_to_textnodes(text)
-    return [textnode_to_html_node(node) for node in nodes]
+    return text_nodes_to_html_nodes(nodes)
 
-def textnode_to_html_node(node):
-    if node.text_type == text_type_text:
-        return node.text
-    elif node.text_type == text_type_bold:
-        return HTMLNode("b", None, [node.text])
-    elif node.text_type == text_type_italic:
-        return HTMLNode("i", None, [node.text])
-    elif node.text_type == text_type_code:
-        return HTMLNode("code", None, [node.text])
-    elif node.text_type == text_type_link:
-        return HTMLNode("a", None, [node.text], {"href": node.url})
-    elif node.text_type == text_type_image:
-        return HTMLNode("img", None, None, {"src": node.url, "alt": node.text})
-    else:
-        raise ValueError(f"Invalid text type: {node.text_type}")
+def text_nodes_to_html_nodes(nodes):
+    html_nodes = []
+    for node in nodes:
+        if isinstance(node, TextNode):
+            if node.text_type == text_type_text:
+                html_nodes.append(node.text)
+            elif node.text_type == text_type_bold:
+                html_nodes.append(HTMLNode("b", None, [node.text]))
+            elif node.text_type == text_type_italic:
+                html_nodes.append(HTMLNode("i", None, [node.text]))
+            elif node.text_type == text_type_code:
+                html_nodes.append(HTMLNode("code", None, [node.text]))
+            elif node.text_type == text_type_link:
+                html_nodes.append(HTMLNode("a", None, [node.text], {"href": node.url}))
+            elif node.text_type == text_type_image:
+                html_nodes.append(HTMLNode("img", None, None, {"src": node.url, "alt": node.text}))
+        else:
+            html_nodes.append(node)
+    return html_nodes
 
 def markdown_to_html_node(markdown):
     lines = markdown.split('\n')
